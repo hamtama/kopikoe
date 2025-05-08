@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Form Input Leveling Horizontal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .leveling-form {
+            display: flex;
+            flex-direction: column;
+            max-width: 600px;
+        }
+        .level {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .level label {
+            margin-right: 10px;
+        }
+        .level input[type="radio"] {
+            margin-right: 5px;
+        }
+        .scale {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            position: relative;
+        }
+        .scale label {
+            text-align: center;
+            flex: 1;
+        }
+        .scale input[type="radio"] {
+            margin: 0 5px;
+        }
+        .scale div {
+            position: absolute;
+            width: 100%;
+            border-bottom: 1px solid #000;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .scale span {
+            position: relative;
+            top: 20px;
+        }
+        .output {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <form class="leveling-form" id="levelForm">
+        <div class="level">
+            <label>Level:</label>
+            <div class="scale">
+                <span>Low</span>
+                <label><input type="radio" name="level" value="1"> 1</label>
+                <label><input type="radio" name="level" value="3"> 3</label>
+                <label><input type="radio" name="level" value="5"> 5</label>
+                <label><input type="radio" name="level" value="7"> 7</label>
+                <label><input type="radio" name="level" value="10"> 10</label>
+                <span>High</span>
+                <div></div>
+            </div>
+        </div>
+        <button type="button" onclick="showOutput()">Submit</button>
+    </form>
+
+    <div class="output" id="output"></div>
+
+    <script>
+        function showOutput() {
+            const form = document.getElementById('levelForm');
+            const output = document.getElementById('output');
+            const formData = new FormData(form);
+            let outputText = '<h3>Selected Level:</h3>';
+
+            formData.forEach((value, key) => {
+                outputText += `<p>${key}: ${value}</p>`;
+            });
+
+            output.innerHTML = outputText;
+        }
+    </script>
+</body>
+</html>
