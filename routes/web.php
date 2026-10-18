@@ -49,11 +49,11 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware(['auth', 'auth.penggiat'])->group(function () {
-    Route::get('/penggiat', [Penggiat::class, 'render'])->name('penggiat.dashboard');
+    Route::get('/penggiat', Penggiat::class)->name('penggiat.dashboard');
 });
 
 Route::middleware(['auth', 'auth.pencari'])->group(function () {
-    Route::get('/pencari', [Pencari::class, 'render'])->name('pencari.dashboard');
+    Route::get('/pencari', Pencari::class)->name('pencari.dashboard');
 });
 
 

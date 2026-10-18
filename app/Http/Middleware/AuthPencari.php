@@ -16,12 +16,14 @@ class AuthPencari
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::user() && Auth::user()->user_category_id === 2) {
-            return $next($request);
-        } else {
+        $user = Auth::user();
 
-            session()->flash('error', 'You are not authorized to access this page.');
-            return redirect()->route('home');
+        // Izinkan jika kategori user adalah Pencari (ID 2) atau dia adalah Admin
+        if ($user && ((int) $user->user_category_id === 2 || $user->is_admin)) {
+            return $next($request);
         }
+
+        session()->flash('error', 'Halaman ini khusus untuk Pencari Kopi / Pembeli.');
+        return redirect()->route('home');
     }
 }

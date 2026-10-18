@@ -3,106 +3,117 @@
 namespace App\Http\Livewire;
 
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use App\Models\Parameters;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Grid;
-use App\Models\UserCategory;
-use Filament\Forms;
-use Illuminate\Support\Facades\Log;
-use Filament\Forms\Components\CheckboxList;
+use App\Models\JenisKopi;
+use App\Models\Variables;
+use Illuminate\Support\Facades\Auth;
 
-class Penggiat extends Component implements Forms\Contracts\HasForms
+class Penggiat extends Component
 {
-    use Forms\Concerns\InteractsWithForms;
+    use WithFileUploads;
 
-    public $inputs = []; // Array untuk menampung nilai input dari form
+    // Form fields
+    public $name = '';
+    public $nama_supplier = '';
+    public $alamat = '';
+    public $jenis_kopi = '';
+    public $image;
+    public $inputs = [];
 
-    /**
-     * Inisialisasi input default saat komponen dimuat pertama kali.
-     */
+    // Tab state ('form' atau 'list')
+    public $activeTab = 'form';
+
+    protected $rules = [
+        'name' => 'required|string|min:3|max:255',
+        'nama_supplier' => 'required|string|max:255',
+        'alamat' => 'required|string|max:255',
+        'jenis_kopi' => 'required',
+        'image' => 'nullable|image|max:2048', // Maksimal 2MB
+    ];
+
     public function mount()
     {
-        // Kosongkan array input saat mount pertama kali
-        $this->inputs = [];
-    }
+        $user = Auth::user();
+        $this->nama_supplier = $user->name ?? '';
+        $this->alamat = $user->alamat ?? '';
 
-    /**
-     * Render komponen dan ambil data parameter secara realtime dari database
-     */
-    public function render()
-    {
-        Log::info('Rendering penggiat component');
-        // Ambil semua data parameter beserta subParameters dari database setiap kali komponen dirender
         $parameters = Parameters::with('subParameters')->get();
-
-        $parameters = json_decode(json_encode($parameters->toArray()));
-
-        // Inisialisasi input jika belum ada
-        foreach ($parameters as $parameter) {
-            if (!isset($this->inputs[$parameter->kode])) {
-                $this->inputs[$parameter->kode] = $parameter->is_multiple ? [] : null;
+        foreach ($parameters as $param) {
+            if ($param->is_multiple) {
+                $this->inputs[$param->kode] = [];
+            } else {
+                $mid = (int) round((($param->min ?? 1) + ($param->max ?? 15)) / 2);
+                $this->inputs[$param->kode] = $mid;
             }
         }
+    }
+
+    public function saveCoffee()
+    {
+        $this->validate();
+
+        // Upload gambar jika ada
+        $imagePath = [];
+        if ($this->image) {
+            $path = $this->image->store('variables', 'public');
+            $imagePath = [$path];
+        }
+
+        // Hitung normalisasi data kriteria secara otomatis
+        $normalizedData = Variables::normalizeData($this->inputs);
+
+        // Simpan ke tabel variables
+        Variables::create([
+            'name' => $this->name,
+            'nama_supplier' => $this->nama_supplier,
+            'alamat' => $this->alamat,
+            'jenis_kopi' => $this->jenis_kopi,
+            'image' => !empty($imagePath) ? $imagePath : null,
+            'parameters' => $this->inputs,
+            'normalisasi' => $normalizedData,
+            'status' => 1, // Langsung aktif di sistem rekomendasi
+        ]);
+
+        session()->flash('success', 'Kopi berhasil didaftarkan! Kopi Anda kini sudah masuk dalam sistem katalog dan siap direkomendasikan kepada pencari kopi.');
+
+        // Reset form
+        $this->name = '';
+        $this->image = null;
+        $this->mount();
+        $this->activeTab = 'list';
+    }
+
+    public function deleteCoffee($variableId)
+    {
+        $coffee = Variables::find($variableId);
+        if ($coffee) {
+            $coffee->delete();
+            session()->flash('success', 'Data kopi berhasil dihapus dari sistem.');
+        }
+    }
+
+    public function setTab($tab)
+    {
+        $this->activeTab = $tab;
+    }
+
+    public function render()
+    {
+        $parameters = Parameters::with('subParameters')->get();
+        $listJenisKopi = JenisKopi::all();
+
+        // Ambil daftar kopi yang didaftarkan oleh supplier ini
+        $myCoffees = Variables::with('JenisKopi')
+            ->where('nama_supplier', $this->nama_supplier)
+            ->orWhere('nama_supplier', Auth::user()->name)
+            ->latest()
+            ->get();
 
         return view('livewire.penggiat', [
             'parameters' => $parameters,
-        ]);
-    }
-
-    /**
-     * Mendefinisikan skema form berdasarkan parameter yang diambil
-     */
-    protected function getFormSchema(): array
-    {
-        $parameters = Parameters::with('subParameters')->get(); // Ambil data dari model di schema form
-
-        $parameterInputs = [];
-
-        foreach ($parameters as $parameter) {
-            $transformedName = $parameter->kode;
-            $displayLabel = $parameter->name;
-
-            if ($parameter->is_multiple) {
-                $subParameters = $parameter->subParameters->pluck('name', 'subparameter_id')->toArray();
-
-                $parameterInputs[] = Grid::make(5)
-                    ->schema([
-                        Placeholder::make("label_{$transformedName}")
-                            ->content($displayLabel)
-                            ->label(false)
-                            ->extraAttributes(['class' => 'text-sm text-gray-700']),
-                        CheckboxList::make("inputData.{$transformedName}")
-                            ->options($subParameters)
-                            ->columns(1) // Menampilkan checkbox dalam satu kolom
-                            ->columnSpan(2)
-                            ->label(false)
-                            // ->columnSpace(1)
-                            ->extraAttributes(['class' => 'space-y-1 flex flex-col justify-center']),
-                    ]);
-            } else {
-                $parameterInputs[] = Forms\Components\View::make('components.level-input')
-                    ->label($displayLabel) // Menggunakan nama parameter sebagai label
-                    ->statePath("inputData.{$transformedName}")
-                    ->viewData([
-                        'name' => "inputData.{$transformedName}",
-                        'id' => $transformedName,
-                        'displayLabel' => $displayLabel,
-                        'labels' => ['Low', 'Medium', 'High'], // Sesuaikan label sesuai kebutuhan
-                        'numberRange' => [$parameter->min, $parameter->max], // Rentang nilai parameter
-                        'disabled' => false,
-                    ]);
-            }
-        }
-
-        return $parameterInputs;
-    }
-
-    /**
-     * Method untuk menangani submit form
-     */
-    public function submit()
-    {
-        // Debug data yang di-submit
-        dd($this->inputs);
+            'listJenisKopi' => $listJenisKopi,
+            'myCoffees' => $myCoffees,
+        ])->layout('layouts.app');
     }
 }

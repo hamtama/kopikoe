@@ -26,15 +26,13 @@
                                                     dd(Auth::user());
                                                 @endphp --}}
                                                 @if (Auth::user()->is_admin)
-                                                    <li><a href="/admin">Admin Dashboard</a></li>
-                                                @endif
-                                                @if (Auth::user()->user_category_id === 1)
-                                                    <li><a href="{{ route('penggiat.dashboard') }}">Penggiat Dashboard</a>
-                                                    </li>
-                                                @endif
-                                                @if (Auth::user()->user_category_id === 2)
-                                                    <li><a href="{{ route('pencari.dashboard') }}">Pencari Dashboard</a>
-                                                    </li>
+                                                    <li><a href="/admin">Admin Dashboard (Filament)</a></li>
+                                                    <li><a href="{{ route('penggiat.dashboard') }}">Portal Penggiat Kopi</a></li>
+                                                    <li><a href="{{ route('pencari.dashboard') }}">Rekomendasi Pencari Kopi</a></li>
+                                                @elseif (Auth::user()->user_category_id === 1)
+                                                    <li><a href="{{ route('penggiat.dashboard') }}">Penggiat Dashboard</a></li>
+                                                @elseif (Auth::user()->user_category_id === 2)
+                                                    <li><a href="{{ route('pencari.dashboard') }}">Pencari Dashboard</a></li>
                                                 @endif
                                                 {{-- <li><a href="{{ route('dashboard') }}">Orders Dashboard</a></li> --}}
                                                 <li><a href="{{ route('profile.edit') }}">Account Settings</a></li>

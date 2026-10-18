@@ -16,13 +16,14 @@ class AuthPenggiat
      */
     public function handle(Request $request, Closure $next): Response
     {
+        $user = Auth::user();
 
-        if (Auth::user() && Auth::user()->user_category_id === 1) {
+        // Izinkan jika kategori user adalah Penggiat (ID 1) atau dia adalah Admin
+        if ($user && ((int) $user->user_category_id === 1 || $user->is_admin)) {
             return $next($request);
-        } else {
-
-            session()->flash('error', 'You are not authorized to access this page.');
-            return redirect()->route('home');
         }
+
+        session()->flash('error', 'Halaman ini khusus untuk Penggiat Kopi / Petani / Roastery.');
+        return redirect()->route('home');
     }
 }
