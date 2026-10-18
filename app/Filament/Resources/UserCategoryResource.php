@@ -3,33 +3,38 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserCategoryResource\Pages;
-use App\Filament\Resources\UserCategoryResource\RelationManagers;
 use App\Models\UserCategory;
 use Filament\Forms;
+use Filament\Forms\Components\Card;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Form;
 use Filament\Resources\Resource;
 use Filament\Resources\Table;
 use Filament\Tables;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class UserCategoryResource extends Resource
 {
     protected static ?string $model = UserCategory::class;
 
-    protected ?string $defaultSortColumn = 'name_user_category';
-
+    protected static ?string $navigationLabel = 'Kategori Pengguna';
     protected static ?string $navigationGroup = 'Users';
-
-    protected static ?string $navigationIcon = 'heroicon-o-collection';
+    protected static ?string $navigationIcon = 'heroicon-o-user-group';
+    protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('name_user_category')
-                    ->required()
-                    ->maxLength(255),
+                Card::make()
+                    ->title('Data Kategori Pengguna')
+                    ->description('Kelola tipe user (Penggiat Kopi, Pencari Kopi, Pakar, dll).')
+                    ->schema([
+                        TextInput::make('name_user_category')
+                            ->label('Nama Kategori Pengguna')
+                            ->placeholder('Contoh: Penggiat Kopi, Pencari Kopi')
+                            ->required()
+                            ->maxLength(255),
+                    ]),
             ]);
     }
 
@@ -37,7 +42,15 @@ class UserCategoryResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name_user_category')->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('id')
+                    ->label('#')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('name_user_category')
+                    ->label('Nama Kategori')
+                    ->searchable()
+                    ->sortable()
+                    ->weight('bold'),
             ])
             ->filters([
                 //
@@ -53,9 +66,7 @@ class UserCategoryResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

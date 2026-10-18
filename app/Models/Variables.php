@@ -12,7 +12,16 @@ class Variables extends Model
     protected $table = 'variables';
     protected $primaryKey = 'variable_id';
 
-    protected $fillable = ['name', 'parameters', 'normalisasi', 'status', 'image', 'jenis_kopi', 'nama_supplier', 'alamat'];
+    protected $fillable = [
+        'name',
+        'nama_supplier',
+        'alamat',
+        'jenis_kopi',
+        'parameters',
+        'normalisasi',
+        'status',
+        'image',
+    ];
 
     protected $casts = [
         'parameters' => 'array',
@@ -34,8 +43,10 @@ class Variables extends Model
             }
 
             // Normalisasi data sebelum menyimpan
-            $model->normalisasi = self::normalizeData($model->parameters);
-            $model->status = 1; // Set status to 1 after normalizing
+            if (empty($model->normalisasi) && !empty($model->parameters)) {
+                $model->normalisasi = self::normalizeData($model->parameters);
+            }
+            $model->status = 1; // Set status aktif
         });
     }
 
@@ -46,43 +57,47 @@ class Variables extends Model
         foreach ($parameters as $parameter) {
             $transformedName = $parameter->kode;
 
-            // Validasi parameter non-multiple
             if (!$parameter->is_multiple) {
                 if (!isset($this->parameters[$transformedName]) || empty($this->parameters[$transformedName])) {
-                    return false; // Parameter non-multiple belum terisi
+                    return false;
                 }
             }
         }
-        return true; // Semua parameter non-multiple sudah terisi
+        return true;
     }
 
     public static function normalizeData($parameters): array
     {
         $normalized = [];
+        $allParams = Parameters::with('subParameters')->get();
 
-        foreach ($parameters as $key => $value) {
-            $parameter = Parameters::where('kode', $key)->first();
+        foreach ($allParams as $parameter) {
+            $key = $parameter->kode;
+            $value = $parameters[$key] ?? null;
 
-            if ($parameter) {
-                if ($parameter->is_multiple) {
-                    $subParameters = SubParameter::where('parameter_id', $parameter->parameter_id)->pluck('subparameter_id')->toArray();
-                    foreach ($subParameters as $subParameter) {
-                        $normalized["{$key}_{$subParameter}"] = in_array($subParameter, $value) ? 1 : 0;
-                    }
-                } else {
-                    $min = $parameter->min;
-                    $max = $parameter->max;
-                    if ($parameter->type == 'benefit') {
-                        $normalized[$key] = ($value - $min) / ($max - $min);
-                    } else {
-                        $normalized[$key] = ($max - $value) / ($max - $min);
-                    }
+            if ($parameter->is_multiple) {
+                $subParameters = $parameter->subParameters->pluck('subparameter_id')->toArray();
+                $selected = is_array($value) ? $value : [];
+
+                foreach ($subParameters as $subParameter) {
+                    $normalized["{$key}_{$subParameter}"] = in_array($subParameter, $selected) ? 1.0 : 0.0;
                 }
             } else {
-                $normalized[$key] = 0;
-                Log::error("Parameter with key {$key} not found in database.");
+                $min = (float) ($parameter->min ?? 1);
+                $max = (float) ($parameter->max ?? 15);
+                $numVal = (float) ($value ?? $min);
+
+                // Pencegahan Division by Zero
+                $range = ($max - $min) != 0 ? ($max - $min) : 1.0;
+
+                if (strtolower($parameter->type) === 'benefit') {
+                    $normalized[$key] = round(($numVal - $min) / $range, 4);
+                } else {
+                    $normalized[$key] = round(($max - $numVal) / $range, 4);
+                }
             }
         }
+
         return $normalized;
     }
 }

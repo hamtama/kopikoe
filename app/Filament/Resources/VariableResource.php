@@ -3,170 +3,244 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\VariableResource\Pages;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\FileUpload;
-use Filament\Tables\Columns\TextColumn;
 use App\Models\JenisKopi;
 use App\Models\Variables;
 use App\Models\Parameters;
 use App\Models\SubParameter;
 use Filament\Forms;
+use Filament\Forms\Components\Card;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\TextInput;
 use Filament\Resources\Form;
 use Filament\Resources\Resource;
 use Filament\Resources\Table;
 use Filament\Tables;
 use Filament\Tables\Actions\Action;
-use Illuminate\Database\Eloquent\Builder;
 use Filament\Notifications\Notification;
-use Illuminate\Support\Facades\Log;
-
+use Illuminate\Database\Eloquent\Builder;
 
 class VariableResource extends Resource
 {
     protected static ?string $model = Variables::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-collection';
+    protected static ?string $navigationIcon = 'heroicon-o-clipboard-list';
+    protected static ?string $navigationLabel = 'Data Sampel Kopi';
     protected static ?string $navigationGroup = 'Data Supplier/Penggiat Kopi';
     protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
         $parameters = Parameters::with('subParameters')->get();
-        $parameterInputs = [];
+        $numericInputs = [];
+        $multipleInputs = [];
 
         foreach ($parameters as $parameter) {
-            // Transform the parameter name
             $transformedName = $parameter->kode;
-            // $transformedName = str_replace(' ', '_', preg_replace('/[^a-z\s]/', '', $transformedName));
-            // $transformedName = trim($transformedName, '_');
 
             if ($parameter->is_multiple) {
                 $subParameters = $parameter->subParameters->pluck('name', 'subparameter_id')->toArray();
-                $parameterInputs[] = Forms\Components\CheckboxList::make("parameters.{$transformedName}")
-                    ->label($parameter->name)
-                    ->options($subParameters);
+                $multipleInputs[] = CheckboxList::make("parameters.{$transformedName}")
+                    ->label($parameter->name . ' (' . $parameter->kode . ')')
+                    ->options($subParameters)
+                    ->columns(3)
+                    ->columnSpanFull();
             } else {
-                $parameterInputs[] = Forms\Components\TextInput::make("parameters.{$transformedName}")
-                    ->label($parameter->name)
+                $numericInputs[] = TextInput::make("parameters.{$transformedName}")
+                    ->label($parameter->name . ' (' . $parameter->kode . ')')
+                    ->helperText("Skala: {$parameter->min} - {$parameter->max} | Tipe: " . ucfirst($parameter->type))
                     ->required()
-                    ->numeric() // Ensure the input is numeric
-                    ->rules(['min:' . $parameter->min, 'max:' . $parameter->max]);; // Maximum value validation
+                    ->numeric()
+                    ->rules(['min:' . $parameter->min, 'max:' . $parameter->max]);
             }
         }
 
-        return $form
-            ->schema(array_merge([
-                Forms\Components\TextInput::make('name')->required(),
-                Forms\Components\TextInput::make('nama_supplier')->required(),
-                Forms\Components\TextInput::make('alamat')->required(),
-                Select::make('jenis_kopi')
-                    ->label('Jenis Kopi')
-                    ->options(JenisKopi::all()->pluck('jenis_kopi', 'id_jenis_kopi')),
-                FileUpload::make('image')
-                    ->image()
-                    ->multiple()
-                    ->directory('variables')
-                    ->storeFiles()
-                    ->columnSpanFull(),
-            ], $parameterInputs));
+        $cards = [
+            Card::make()
+                ->schema([
+                    Grid::make(2)
+                        ->schema([
+                            TextInput::make('name')
+                                ->label('Nama Produk Kopi')
+                                ->placeholder('Contoh: Arabika Gayo Wine Process')
+                                ->required(),
+                            TextInput::make('nama_supplier')
+                                ->label('Nama Petani / Supplier')
+                                ->placeholder('Contoh: Koperasi Petani Kopi Gayo')
+                                ->required(),
+                            Select::make('jenis_kopi')
+                                ->label('Jenis Kopi')
+                                ->options(JenisKopi::all()->pluck('jenis_kopi', 'id_jenis_kopi'))
+                                ->required()
+                                ->searchable(),
+                            TextInput::make('alamat')
+                                ->label('Lokasi / Asal Kebun')
+                                ->placeholder('Contoh: Takengon, Aceh Tengah')
+                                ->required(),
+                        ]),
+                    FileUpload::make('image')
+                        ->label('Foto Sampel Kopi')
+                        ->image()
+                        ->multiple()
+                        ->directory('variables')
+                        ->storeFiles()
+                        ->columnSpanFull(),
+                ]),
+        ];
+
+        if (!empty($numericInputs)) {
+            $cards[] = Card::make()
+                ->schema([
+                    Grid::make(3)
+                        ->schema($numericInputs),
+                ]);
+        }
+
+        if (!empty($multipleInputs)) {
+            $cards[] = Card::make()
+                ->schema($multipleInputs);
+        }
+
+        return $form->schema($cards);
     }
 
     public static function table(Table $table): Table
     {
-
-
         $columns = [
-            Tables\Columns\TextColumn::make('nama_supplier')->label('Nama Supplier'),
-            Tables\Columns\TextColumn::make('name')->label('Nama Kopi'),
-            Tables\Columns\ImageColumn::make('images')
-                ->getStateUsing(fn($record) => $record->image[0] ?? null) // Ambil gambar pertama
+            Tables\Columns\ImageColumn::make('image')
+                ->label('Foto')
+                ->getStateUsing(function ($record) {
+                    $img = $record->image;
+                    if (is_string($img)) {
+                        $img = json_decode($img, true);
+                    }
+                    if (is_array($img) && !empty($img)) {
+                        return $img[0];
+                    }
+                    return null;
+                })
                 ->disk('public')
-                ->size(50),
+                ->size(45)
+                ->circular(),
 
+            Tables\Columns\TextColumn::make('name')
+                ->label('Nama Kopi')
+                ->searchable()
+                ->sortable()
+                ->weight('bold')
+                ->description(fn ($record) => 'Supplier: ' . ($record->nama_supplier ?? '-')),
 
-            // Tables\Columns\ViewColumn::make('image')->view('filament.tables.columns.carousel'),
-            Tables\Columns\TextColumn::make('JenisKopi.jenis_kopi')->label('Jenis Kopi'),
+            Tables\Columns\BadgeColumn::make('JenisKopi.jenis_kopi')
+                ->label('Jenis Kopi')
+                ->color('primary')
+                ->sortable(),
         ];
-
-
 
         $parameters = Parameters::all();
         foreach ($parameters as $parameter) {
             $transformedName = $parameter->kode;
-            // $transformedName = strtolower($parameter->name);
-            // $transformedName = str_replace(' ', '_', preg_replace('/[^a-z\s]/', '', $transformedName));
-            // $transformedName = trim($transformedName, '_');
 
             $columns[] = Tables\Columns\TextColumn::make("parameters->{$transformedName}")
                 ->label($parameter->kode)
+                ->tooltip($parameter->name . ' (' . ucfirst($parameter->type) . ')')
                 ->formatStateUsing(function ($state, $record) use ($transformedName) {
                     if (!$record->parameters) {
-                        return '';
+                        return '-';
                     }
 
-                    // Pastikan data parameters di-decode hanya jika berbentuk string
-                    $parameters = is_array($record->parameters) ? $record->parameters : json_decode($record->parameters, true);
+                    $params = is_array($record->parameters) ? $record->parameters : json_decode($record->parameters, true);
 
-                    if (is_array($parameters) && isset($parameters[$transformedName])) {
-                        $value = $parameters[$transformedName];
+                    if (is_array($params) && isset($params[$transformedName])) {
+                        $value = $params[$transformedName];
                         if (is_array($value)) {
                             $subParams = SubParameter::whereIn('subparameter_id', $value)->pluck('name')->toArray();
-                            return implode(', ', $subParams);
+                            return !empty($subParams) ? implode(', ', $subParams) : '-';
                         }
                         return $value;
                     }
-                    return '';
-                });
+                    return '-';
+                })
+                ->limit(25)
+                ->alignCenter();
         }
 
-        // Tambahkan kolom status sebagai ikon
-        $columns[] = Tables\Columns\IconColumn::make('status')
-            ->boolean()
+        $columns[] = Tables\Columns\BadgeColumn::make('status')
             ->label('Status')
-            ->trueIcon('heroicon-o-check-circle')
-            ->falseIcon('heroicon-o-x-circle')
+            ->formatStateUsing(fn ($state) => $state ? 'Ternormalisasi' : 'Belum')
+            ->colors([
+                'success' => 1,
+                'warning' => 0,
+            ])
+            ->icons([
+                'heroicon-o-check-circle' => 1,
+                'heroicon-o-clock' => 0,
+            ])
             ->alignCenter();
 
         return $table
             ->columns($columns)
-
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('jenis_kopi')
+                    ->label('Filter Jenis Kopi')
+                    ->options(JenisKopi::all()->pluck('jenis_kopi', 'id_jenis_kopi')),
+                Tables\Filters\TernaryFilter::make('status')
+                    ->label('Status Normalisasi')
+                    ->trueLabel('Sudah Dinormalisasi')
+                    ->falseLabel('Belum Dinormalisasi'),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\ViewAction::make('viewDetails'),
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Action::make('normalize')
                     ->label('Normalisasi')
-                    ->icon('heroicon-o-database')
+                    ->icon('heroicon-o-sparkles')
+                    ->color('success')
                     ->action(function ($record) {
                         if (!$record->isValid()) {
-                            // Use Filament's notification system to show error
                             Notification::make()
-                                ->title('Error')
-                                ->body('Data parameter masih belum terisi dengan benar. Silahkan melakukan penyesuaian terlebih dahulu.')
-                                ->danger() // Optional: for styling the notification as error
+                                ->title('Data Belum Lengkap')
+                                ->body('Data parameter belum terisi lengkap sesuai kriteria.')
+                                ->danger()
                                 ->send();
-
                             return;
                         }
 
                         $record->normalisasi = Variables::normalizeData($record->parameters);
-                        $record->status = 1; // Set status to 1 after normalizing
+                        $record->status = 1;
                         $record->save();
 
                         Notification::make()
-                            ->title('Success')
-                            ->body('Data berhasil dinormalisasi.')
-                            ->success() // Optional: for styling the notification as success
+                            ->title('Berhasil')
+                            ->body('Data sampel kopi berhasil dinormalisasi ke skala [0, 1].')
+                            ->success()
                             ->send();
                     })
-                    ->visible(function ($record) {
-                        return $record->status == 0; // Show button only if not normalized
-                    }),
+                    ->visible(fn ($record) => $record->status == 0),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
+                Tables\Actions\BulkAction::make('bulkNormalize')
+                    ->label('Normalisasi Terpilih')
+                    ->icon('heroicon-o-sparkles')
+                    ->color('success')
+                    ->action(function ($records) {
+                        $count = 0;
+                        foreach ($records as $record) {
+                            if ($record->isValid()) {
+                                $record->normalisasi = Variables::normalizeData($record->parameters);
+                                $record->status = 1;
+                                $record->save();
+                                $count++;
+                            }
+                        }
+                        Notification::make()
+                            ->title('Normalisasi Selesai')
+                            ->body("{$count} data sampel kopi berhasil dinormalisasi.")
+                            ->success()
+                            ->send();
+                    }),
                 Tables\Actions\DeleteBulkAction::make(),
             ]);
     }
@@ -174,14 +248,17 @@ class VariableResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
-            ->orderBy('status', 'desc'); // Sort by 'status' column, descending order
+            ->with(['JenisKopi'])
+            ->orderBy('status', 'desc');
     }
 
     public static function mutateFormDataBeforeSave(array $data): array
     {
-        foreach ($data['parameters'] as $key => $value) {
-            if (is_array($value) && empty($value)) {
-                $data['parameters'][$key] = [0]; // Set default value to 0 if no option is selected
+        if (isset($data['parameters']) && is_array($data['parameters'])) {
+            foreach ($data['parameters'] as $key => $value) {
+                if (is_array($value) && empty($value)) {
+                    $data['parameters'][$key] = [0];
+                }
             }
         }
 
@@ -190,9 +267,7 @@ class VariableResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

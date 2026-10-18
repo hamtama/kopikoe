@@ -3,45 +3,85 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ParametersResource\Pages;
-use App\Filament\Resources\ParametersResource\RelationManagers;
 use App\Models\Parameters;
 use App\Models\SubParameter;
 use Filament\Forms;
+use Filament\Forms\Components\Card;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\Hidden;
 use Filament\Resources\Form;
 use Filament\Resources\Resource;
 use Filament\Resources\Table;
 use Filament\Tables;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Tables\Actions\Action;
-use Illuminate\Support\HtmlString;
-use Illuminate\Support\Str;
+use Filament\Notifications\Notification;
+use Illuminate\Database\Eloquent\Builder;
 
 class ParametersResource extends Resource
 {
     protected static ?string $model = Parameters::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-collection';
+    protected static ?string $navigationIcon = 'heroicon-o-adjustments';
+    protected static ?string $navigationLabel = 'Kriteria / Parameter';
     protected static ?string $navigationGroup = 'Data Resource';
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('kode')
-                    ->label('Kode')
-                    ->default(fn () => Parameters::generateKode())
-                    ->required()
-                    ->unique(ignorable: fn ($record) => $record)
-                    ->extraAttributes(['readonly' => true]),
-                Forms\Components\TextInput::make('name')->required(),
+                Card::make()
+                    ->title('Konfigurasi Parameter / Kriteria KNN')
+                    ->description('Tentukan kriteria penilaian sensori dan aturan normalisasi Min-Max.')
+                    ->schema([
+                        Grid::make(2)
+                            ->schema([
+                                TextInput::make('kode')
+                                    ->label('Kode Kriteria')
+                                    ->default(fn () => Parameters::generateKode())
+                                    ->required()
+                                    ->unique(ignorable: fn ($record) => $record)
+                                    ->extraAttributes(['readonly' => true])
+                                    ->helperText('Kode otomatis terbuat (C1, C2, dst).'),
 
-                Forms\Components\Select::make('type')
-                    ->options(['benefit' => 'Benefit', 'cost' => 'Cost'])
-                    ->required(),
-                Forms\Components\TextInput::make('min')->required(),
-                Forms\Components\TextInput::make('max')->required(),
-                Forms\Components\Toggle::make('is_multiple')->label('Is Multiple?')->default(false),
+                                TextInput::make('name')
+                                    ->label('Nama Kriteria')
+                                    ->placeholder('Contoh: Acidity / Keasaman')
+                                    ->required(),
+
+                                Select::make('type')
+                                    ->label('Tipe Kriteria Normalisasi')
+                                    ->options([
+                                        'benefit' => 'Benefit (Semakin tinggi nilai semakin baik)',
+                                        'cost' => 'Cost (Semakin rendah nilai semakin baik)',
+                                    ])
+                                    ->required()
+                                    ->helperText('Rumus Benefit: (x - min) / (max - min) | Rumus Cost: (max - x) / (max - min)'),
+
+                                Toggle::make('is_multiple')
+                                    ->label('Multi Sub-Kategori (Pilihan Ganda)')
+                                    ->helperText('Aktifkan jika kriteria ini memiliki sub-kategori seperti notes rasa.')
+                                    ->default(false)
+                                    ->inline(false),
+
+                                TextInput::make('min')
+                                    ->label('Nilai Minimum (Batas Bawah)')
+                                    ->numeric()
+                                    ->default(0)
+                                    ->required()
+                                    ->helperText('Nilai minimum absolut untuk normalisasi.'),
+
+                                TextInput::make('max')
+                                    ->label('Nilai Maksimum (Batas Atas)')
+                                    ->numeric()
+                                    ->default(100)
+                                    ->required()
+                                    ->helperText('Nilai batas maksimum untuk skala kriteria.'),
+                            ]),
+                    ]),
             ]);
     }
 
@@ -49,39 +89,90 @@ class ParametersResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('kode')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('type')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('max')->label('Bobot'),
-                Tables\Columns\BooleanColumn::make('is_multiple'),
-                Tables\Columns\TextColumn::make('subParameters')
-                    ->label('Sub Kategori')
-                    ->formatStateUsing(function ($state) {
-                        $subCategories = $state->isNotEmpty() ? implode(', ', $state->pluck('name')->toArray()) : 'Tidak ada subkategori';
-                        return Str::limit($subCategories, 30); // Ubah 50 dengan jumlah karakter yang diinginkan
-                    }),
+                Tables\Columns\BadgeColumn::make('kode')
+                    ->label('Kode')
+                    ->color('secondary')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('name')
+                    ->label('Nama Kriteria')
+                    ->searchable()
+                    ->sortable()
+                    ->weight('bold'),
+
+                Tables\Columns\BadgeColumn::make('type')
+                    ->label('Tipe')
+                    ->enum([
+                        'benefit' => 'Benefit (+)',
+                        'cost' => 'Cost (-)',
+                    ])
+                    ->colors([
+                        'success' => 'benefit',
+                        'danger' => 'cost',
+                    ])
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('range')
+                    ->label('Rentang Skala')
+                    ->getStateUsing(fn ($record) => "{$record->min} — {$record->max}")
+                    ->alignCenter(),
+
+                Tables\Columns\BadgeColumn::make('is_multiple')
+                    ->label('Format Input')
+                    ->formatStateUsing(fn ($state) => $state ? 'Multi Sub-Kategori' : 'Numerik Tunggal')
+                    ->colors([
+                        'warning' => fn ($state) => $state,
+                        'primary' => fn ($state) => !$state,
+                    ]),
+
+                Tables\Columns\TextColumn::make('sub_summary')
+                    ->label('Sub-Kategori')
+                    ->getStateUsing(function ($record) {
+                        if (!$record->is_multiple) {
+                            return '— (Skala Angka)';
+                        }
+                        $count = $record->subParameters->count();
+                        if ($count === 0) {
+                            return 'Belum ada sub-kategori';
+                        }
+                        return "{$count} Pilihan: " . $record->subParameters->pluck('name')->join(', ');
+                    })
+                    ->limit(40)
+                    ->tooltip(fn ($record) => $record->is_multiple ? $record->subParameters->pluck('name')->join(', ') : null),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('type')
+                    ->label('Tipe Kriteria')
+                    ->options([
+                        'benefit' => 'Benefit',
+                        'cost' => 'Cost',
+                    ]),
+                Tables\Filters\TernaryFilter::make('is_multiple')
+                    ->label('Format Input')
+                    ->trueLabel('Multi Sub-Kategori')
+                    ->falseLabel('Numerik Tunggal'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Action::make('addSubParameter')
-                    ->label('Add SubParameter')
-                    ->icon('heroicon-o-plus')
+                    ->label('+ Sub-Kategori')
+                    ->icon('heroicon-o-plus-circle')
+                    ->color('secondary')
                     ->form(fn ($record) => [
-                        Forms\Components\Hidden::make('parameter_id')->default($record->parameter_id),
-                        Forms\Components\TextInput::make('name')
-                            ->label('SubParameter Name')
+                        Hidden::make('parameter_id')->default($record->parameter_id),
+                        TextInput::make('name')
+                            ->label('Nama Sub-Kategori')
+                            ->placeholder('Contoh: Fruity, Citric, Chocolaty')
                             ->required(),
-                        Forms\Components\TextInput::make('bobot')
-                            ->label('Bobot')
+                        TextInput::make('bobot')
+                            ->label('Bobot Nilai')
                             ->type('number')
+                            ->default(1)
                             ->required()
                             ->numeric()
                             ->minValue(0)
-                            ->maxValue(99999)
-                            ->step(1),
+                            ->step(1)
+                            ->helperText('Bobot nilai saat opsi ini dipilih.'),
                     ])
                     ->action(function ($data) {
                         SubParameter::create([
@@ -89,58 +180,31 @@ class ParametersResource extends Resource
                             'name' => $data['name'],
                             'bobot' => $data['bobot'],
                         ]);
+                        Notification::make()
+                            ->title('Sub-kategori berhasil ditambahkan')
+                            ->success()
+                            ->send();
                     })
-                    ->modalHeading('Add SubParameter')
-                    ->modalButton('Add')
+                    ->modalHeading('Tambah Sub-Kategori Baru')
+                    ->modalButton('Simpan')
                     ->visible(fn ($record) => $record->is_multiple),
 
-                Tables\Actions\ViewAction::make('viewDetails')
-                    ->label('Detail')
-                    ->icon('heroicon-o-eye')
-                    ->modalHeading('Detail Parameter')
-                    ->modalContent(fn ($record) => new HtmlString('<div>
-                        <table style="width: 100%; border-collapse: collapse;">
-                            <tr>
-                                <th style="border: 1px solid #ddd; padding: 8px;">Field</th>
-                                <th style="border: 1px solid #ddd; padding: 8px;">Value</th>
-                            </tr>
-                            <tr>
-                                <td style="border: 1px solid #ddd; padding: 8px;">Name</td>
-                                <td style="border: 1px solid #ddd; padding: 8px;">' . $record->name . '</td>
-                            </tr>
-                            <tr>
-                                <td style="border: 1px solid #ddd; padding: 8px;">Type</td>
-                                <td style="border: 1px solid #ddd; padding: 8px;">' . $record->type . '</td>
-                            </tr>
-                            <tr>
-                                <td style="border: 1px solid #ddd; padding: 8px;">Min</td>
-                                <td style="border: 1px solid #ddd; padding: 8px;">' . $record->min . '</td>
-                            </tr>
-                            <tr>
-                                <td style="border: 1px solid #ddd; padding: 8px;">Max</td>
-                                <td style="border: 1px solid #ddd; padding: 8px;">' . $record->max . '</td>
-                            </tr>
-                            <tr>
-                                <td style="border: 1px solid #ddd; padding: 8px;">Is Multiple</td>
-                                <td style="border: 1px solid #ddd; padding: 8px;">' . ($record->is_multiple ? 'Ya' : 'Tidak') . '</td>
-                            </tr>
-                        </table>
-                    </div>'))
-                    ->modalButton('Close')
-                    ->disableForm(),
-
-
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
             ]);
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with(['subParameters']);
+    }
+
     public static function getRelations(): array
     {
-        return [
-            //
-        ];
+        return [];
     }
 
     public static function getPages(): array

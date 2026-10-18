@@ -14,4 +14,9 @@ class JenisKopi extends Model
     protected $primaryKey = 'id_jenis_kopi';
 
     protected $fillable = ['jenis_kopi'];
+
+    public function variables()
+    {
+        return $this->hasMany(Variables::class, 'jenis_kopi', 'id_jenis_kopi');
+    }
 }
