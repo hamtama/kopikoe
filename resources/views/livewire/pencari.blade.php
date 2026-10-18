@@ -1,206 +1,207 @@
-<div class="container py-5">
-    <!-- Header Section -->
-    <div class="mb-5 text-center">
-        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill font-semibold uppercase tracking-wider mb-2">
-            ☕ Rekomendasi Kopi Cerdas (KNN)
-        </span>
-        <h1 class="display-6 font-bold text-gray-800">Cari Kopi Sesuai Karakter Seleramu</h1>
-        <p class="text-muted max-w-2xl mx-auto">
-            Atur tingkat intensitas rasa dan aroma yang Anda inginkan. Algoritma K-Nearest Neighbors (KNN) akan mencocokkan preferensi Anda dengan seluruh data kopi dari para pakar & petani kopi.
-        </p>
-    </div>
-
-    <div class="row">
-        <!-- Form Kriteria Preferensi (Sebelah Kiri) -->
-        <div class="col-lg-5 mb-4">
-            <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
-                <div class="card-header bg-dark text-white p-4">
-                    <h5 class="mb-0 font-bold"><i class="fi-rs-filter mr-2"></i> Form Preferensi Rasa</h5>
-                    <small class="text-gray-400">Sesuaikan slider/pilihan di bawah ini</small>
-                </div>
-                <div class="card-body p-4 bg-white">
-                    <form wire:submit.prevent="calculateRecommendation">
-                        <!-- Jenis Kopi -->
-                        <div class="mb-4">
-                            <label class="form-label font-bold text-gray-700">Pilihan Jenis Kopi</label>
-                            <select wire:model.defer="jenis_kopi_id" class="form-select rounded-3 py-2">
-                                <option value="">Semua Jenis Kopi (Arabica & Robusta)</option>
-                                @foreach($listJenisKopi as $jk)
-                                    <option value="{{ $jk->id_jenis_kopi }}">{{ $jk->jenis_kopi }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <hr class="my-4">
-
-                        <!-- Parameter Dinamis dari Database -->
-                        @foreach ($parameters as $parameter)
-                            <div class="mb-4">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <label class="form-label font-bold text-gray-800 mb-0">
-                                        {{ $parameter->name }}
-                                    </label>
-                                    @if(!$parameter->is_multiple)
-                                        <span class="badge bg-primary rounded-pill px-2 py-1">
-                                            Nilai: {{ $inputs[$parameter->kode] ?? ($parameter->min ?? 1) }}
-                                        </span>
-                                    @endif
-                                </div>
-
-                                @if ($parameter->is_multiple)
-                                    <small class="text-muted d-block mb-2">Pilih karakteristik rasa yang Anda sukai:</small>
-                                    <div class="p-3 bg-light rounded-3">
-                                        @foreach ($parameter->subParameters as $sub)
-                                            <div class="form-check mb-2">
-                                                <input class="form-check-input" type="checkbox"
-                                                    value="{{ $sub->subparameter_id }}"
-                                                    wire:model.defer="inputs.{{ $parameter->kode }}"
-                                                    id="sub_{{ $sub->subparameter_id }}">
-                                                <label class="form-check-label text-sm text-gray-700" for="sub_{{ $sub->subparameter_id }}">
-                                                    {{ $sub->name }}
-                                                </label>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                @else
-                                    <div class="d-flex align-items-center gap-3">
-                                        <span class="text-xs text-muted">Low ({{ $parameter->min ?? 1 }})</span>
-                                        <input type="range" class="form-range flex-grow-1"
-                                            min="{{ $parameter->min ?? 1 }}"
-                                            max="{{ $parameter->max ?? 15 }}"
-                                            step="1"
-                                            wire:model="inputs.{{ $parameter->kode }}">
-                                        <span class="text-xs text-muted">High ({{ $parameter->max ?? 15 }})</span>
-                                    </div>
-                                @endif
-                            </div>
-                        @endforeach
-
-                        <!-- Tombol Aksi -->
-                        <div class="d-grid gap-2 mt-4">
-                            <button type="submit" class="btn btn-warning text-white font-bold py-3 rounded-3 shadow-sm hover:shadow-md transition">
-                                <span wire:loading.remove wire:target="calculateRecommendation">
-                                    🔍 Cari Rekomendasi Kopi Sekarang
-                                </span>
-                                <span wire:loading wire:target="calculateRecommendation">
-                                    <span class="spinner-border spinner-border-sm mr-2" role="status"></span> Menghitung Kecocokan...
-                                </span>
-                            </button>
-                            <button type="button" wire:click="resetSearch" class="btn btn-outline-secondary py-2 rounded-3">
-                                Reset Preferensi
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+<div style="background-color: #FAF8F5; min-height: 100vh; padding: 40px 0;">
+    <div class="container" style="max-width: 1050px;">
+        
+        <!-- Header Minimalis & Elegan -->
+        <div class="text-center mb-5">
+            <span style="font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; color: #8C6D58; font-weight: 700; display: block; margin-bottom: 6px;">
+                Sistem Rekomendasi Kopi
+            </span>
+            <h1 style="color: #2D2424; font-weight: 700; font-size: 2.2rem; margin-bottom: 10px;">
+                Temukan Kopi Sesuai Seleramu
+            </h1>
+            <p style="color: #7A726D; font-size: 0.95rem; max-width: 580px; margin: 0 auto;">
+                Sesuaikan preferensi rasa yang Anda sukai di bawah ini. Algoritma kami akan mencocokkan kopi yang paling pas untuk Anda.
+            </p>
         </div>
 
-        <!-- Hasil Rekomendasi (Sebelah Kanan) -->
-        <div class="col-lg-7">
-            <div class="card shadow-sm border-0 rounded-4 p-4 bg-white h-100">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="mb-0 font-bold text-gray-800">
-                        <i class="fi-rs-cup mr-2 text-warning"></i> Hasil Rekomendasi Kopi
-                    </h4>
-                    @if($hasSearched)
-                        <span class="badge bg-success-subtle text-success border border-success px-3 py-2 rounded-pill">
-                            Ditemukan {{ count($recommendations) }} Kopi Terbaik
-                        </span>
+        <!-- HASIL REKOMENDASI (Tampil di bagian atas secara elegan saat dicari) -->
+        @if ($hasSearched)
+            <div id="hasil-rekomendasi" class="mb-5">
+                <div style="background: #ffffff; border-radius: 20px; border: 1px solid #ECE7E1; padding: 32px; box-shadow: 0 4px 20px rgba(0,0,0,0.03);">
+                    
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-3" style="border-bottom: 1px solid #F0ECE7;">
+                        <div>
+                            <span style="color: #C67C4E; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">Hasil Pencocokan</span>
+                            <h3 style="color: #2D2424; font-weight: 700; margin: 0; font-size: 1.4rem;">Rekomendasi Terbaik Untuk Anda</h3>
+                        </div>
+                        <button type="button" wire:click="resetSearch" class="btn btn-sm" 
+                                style="border: 1px solid #D6CECE; color: #5C5252; border-radius: 30px; padding: 6px 18px; font-weight: 600;">
+                            ✕ Atur Ulang
+                        </button>
+                    </div>
+
+                    @if (empty($recommendations))
+                        <div class="text-center py-4 text-muted">
+                            <p class="mb-0">Tidak ditemukan kopi yang cocok dengan kombinasi filter ini. Coba pilih jenis kopi lainnya.</p>
+                        </div>
+                    @else
+                        <!-- Kartu Rekomendasi Grid 3-4 Kolom -->
+                        <div class="row g-4">
+                            @foreach ($recommendations as $index => $rec)
+                                <div class="col-md-6 col-lg-3">
+                                    <div style="background: #FFFFFF; border-radius: 16px; border: 1px solid {{ $index === 0 ? '#C67C4E' : '#ECE7E1' }}; overflow: hidden; height: 100%; display: flex; flex-direction: column; transition: all 0.2s ease; box-shadow: {{ $index === 0 ? '0 8px 24px rgba(198,124,78,0.15)' : 'none' }};">
+                                        
+                                        <!-- Foto Kopi / Badge -->
+                                        <div style="height: 140px; background-color: #F4EFEB; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                            @if(!empty($rec['image']))
+                                                <img src="{{ asset('storage/' . $rec['image']) }}" alt="{{ $rec['name'] }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                            @else
+                                                <i class="fi-rs-coffee" style="font-size: 2.8rem; color: #C4B5A8;"></i>
+                                            @endif
+
+                                            <!-- Badge Ranking -->
+                                            <span style="position: absolute; top: 10px; left: 10px; background: {{ $index === 0 ? '#2D2424' : '#FFFFFF' }}; color: {{ $index === 0 ? '#FFFFFF' : '#2D2424' }}; font-size: 0.7rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
+                                                {{ $index === 0 ? '★ Pilihan #1' : '#' . ($index + 1) }}
+                                            </span>
+
+                                            <!-- Badge Kecocokan -->
+                                            <span style="position: absolute; bottom: 10px; right: 10px; background: rgba(255,255,255,0.92); color: #C67C4E; font-size: 0.75rem; font-weight: 800; padding: 3px 8px; border-radius: 8px;">
+                                                {{ $rec['similarity'] }}% Cocok
+                                            </span>
+                                        </div>
+
+                                        <!-- Informasi Kopi -->
+                                        <div style="padding: 18px; display: flex; flex-direction: column; flex-grow: 1;">
+                                            <span style="font-size: 0.7rem; color: #8C6D58; text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">
+                                                {{ $rec['jenis_kopi'] }}
+                                            </span>
+                                            <h5 style="color: #2D2424; font-weight: 700; font-size: 1.05rem; margin-bottom: 8px; line-height: 1.3;">
+                                                {{ $rec['name'] }}
+                                            </h5>
+                                            
+                                            <div style="font-size: 0.8rem; color: #7A726D; margin-bottom: 14px;">
+                                                <div class="text-truncate">📍 {{ $rec['alamat'] }}</div>
+                                                <div class="text-truncate">🏷️ {{ $rec['nama_supplier'] }}</div>
+                                            </div>
+
+                                            <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid #F5F0EB;">
+                                                <a href="{{ route('product.details', $rec['id']) }}" class="btn w-100" 
+                                                   style="background: #2D2424; color: #FFFFFF; font-size: 0.82rem; font-weight: 600; border-radius: 25px; padding: 7px 0;">
+                                                    Lihat Detail
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
                     @endif
                 </div>
+            </div>
+        @endif
 
-                @if(!$hasSearched)
-                    <div class="text-center py-5 my-auto">
-                        <div class="mb-4">
-                            <i class="fi-rs-coffee text-6xl text-gray-300"></i>
-                        </div>
-                        <h5 class="text-gray-700 font-bold">Belum Ada Rekomendasi yang Ditampilkan</h5>
-                        <p class="text-muted max-w-md mx-auto">
-                            Silakan atur kriteria rasa kopi favorit Anda pada form di sebelah kiri, kemudian klik tombol <b>Cari Rekomendasi Kopi Sekarang</b>.
-                        </p>
+        <!-- FORMULIR FILTER & PREFERENSI RASA -->
+        <div style="background: #ffffff; border-radius: 24px; border: 1px solid #ECE7E1; padding: 36px; box-shadow: 0 4px 20px rgba(0,0,0,0.02);">
+            <form wire:submit.prevent="calculateRecommendation">
+                
+                <!-- 1. Pilihan Jenis Kopi (Pills Button) -->
+                <div class="mb-4 pb-4" style="border-bottom: 1px solid #F0ECE7;">
+                    <label style="font-size: 0.85rem; font-weight: 700; color: #2D2424; margin-bottom: 12px; display: block;">
+                        1. Pilih Jenis Kopi yang Diinginkan
+                    </label>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" wire:click="setJenisKopi('')"
+                                class="btn btn-sm"
+                                style="border-radius: 30px; padding: 8px 20px; font-weight: 600; font-size: 0.85rem; border: 1px solid {{ $jenis_kopi_id === '' ? '#2D2424' : '#E0D8D0' }}; background: {{ $jenis_kopi_id === '' ? '#2D2424' : '#FFFFFF' }}; color: {{ $jenis_kopi_id === '' ? '#FFFFFF' : '#5C5252' }};">
+                            Semua Kopi
+                        </button>
+                        @foreach ($listJenisKopi as $jk)
+                            <button type="button" wire:click="setJenisKopi('{{ $jk->id_jenis_kopi }}')"
+                                    class="btn btn-sm"
+                                    style="border-radius: 30px; padding: 8px 20px; font-weight: 600; font-size: 0.85rem; border: 1px solid {{ $jenis_kopi_id == $jk->id_jenis_kopi ? '#2D2424' : '#E0D8D0' }}; background: {{ $jenis_kopi_id == $jk->id_jenis_kopi ? '#2D2424' : '#FFFFFF' }}; color: {{ $jenis_kopi_id == $jk->id_jenis_kopi ? '#FFFFFF' : '#5C5252' }};">
+                                {{ $jk->jenis_kopi }}
+                            </button>
+                        @endforeach
                     </div>
-                @elseif(empty($recommendations))
-                    <div class="alert alert-warning rounded-3 p-4 text-center my-auto">
-                        <i class="fi-rs-info text-3xl mb-2 d-block"></i>
-                        <h5 class="font-bold">Tidak Ada Kopi yang Ditemukan</h5>
-                        <p class="mb-0 text-sm">Belum ada data sampel kopi di sistem atau kriteria filter jenis kopi terlalu spesifik. Coba pilih 'Semua Jenis Kopi' atau minta Penggiat Kopi mendaftarkan kopi baru.</p>
-                    </div>
-                @else
-                    <div class="space-y-4">
-                        @foreach ($recommendations as $index => $rec)
-                            <div class="card border rounded-3 p-3 mb-3 shadow-hover transition {{ $index === 0 ? 'border-warning bg-amber-50/30' : 'border-gray-200' }}">
-                                <div class="row align-items-center">
-                                    <div class="col-md-3 text-center mb-3 mb-md-0">
-                                        @if(!empty($rec['image']))
-                                            <img src="{{ asset('storage/' . $rec['image']) }}" 
-                                                 alt="{{ $rec['name'] }}" 
-                                                 class="rounded-3 img-fluid object-cover shadow-sm"
-                                                 style="max-height: 120px; width: 100%;">
-                                        @else
-                                            <div class="bg-gray-100 rounded-3 d-flex align-items-center justify-content-center" style="height: 100px;">
-                                                <i class="fi-rs-coffee text-4xl text-gray-400"></i>
-                                            </div>
-                                        @endif
+                </div>
+
+                <!-- 2. Parameter Intensitas Rasa (Slider Rapi 2 Kolom) -->
+                <div class="mb-4 pb-4" style="border-bottom: 1px solid #F0ECE7;">
+                    <label style="font-size: 0.85rem; font-weight: 700; color: #2D2424; margin-bottom: 14px; display: block;">
+                        2. Tentukan Tingkat Karakteristik Rasa
+                    </label>
+
+                    <div class="row g-4">
+                        @foreach ($parameters->where('is_multiple', false) as $parameter)
+                            <div class="col-md-6">
+                                <div style="background: #FDFBF9; border: 1px solid #F0ECE7; border-radius: 14px; padding: 16px 20px;">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span style="font-size: 0.9rem; font-weight: 700; color: #2D2424;">
+                                            {{ $parameter->name }}
+                                        </span>
+                                        <span style="font-size: 0.75rem; font-weight: 700; background: #EFE9E3; color: #69584D; padding: 2px 10px; border-radius: 12px;">
+                                            Skor: {{ $inputs[$parameter->kode] ?? ($parameter->min ?? 1) }}
+                                        </span>
                                     </div>
-                                    <div class="col-md-9">
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <div>
-                                                @if($index === 0)
-                                                    <span class="badge bg-warning text-dark font-bold px-2 py-1 mb-1">
-                                                        🏆 Ranking 1 (Paling Cocok)
-                                                    </span>
-                                                @elseif($index === 1)
-                                                    <span class="badge bg-secondary text-white px-2 py-1 mb-1">
-                                                        🥈 Ranking 2
-                                                    </span>
-                                                @elseif($index === 2)
-                                                    <span class="badge bg-danger-subtle text-danger px-2 py-1 mb-1">
-                                                        🥉 Ranking 3
-                                                    </span>
-                                                @else
-                                                    <span class="badge bg-light text-dark px-2 py-1 mb-1">
-                                                        Pilihan #{{ $index + 1 }}
-                                                    </span>
-                                                @endif
-                                                <h5 class="font-bold text-gray-900 mb-0">{{ $rec['name'] }}</h5>
-                                            </div>
-                                            <div class="text-end">
-                                                <div class="text-2xl font-black text-warning leading-none">
-                                                    {{ $rec['similarity'] }}%
-                                                </div>
-                                                <small class="text-muted text-xs">Tingkat Kemiripan</small>
-                                            </div>
-                                        </div>
 
-                                        <!-- Progress Bar Kecocokan -->
-                                        <div class="progress mb-2" style="height: 6px;">
-                                            <div class="progress-bar bg-warning" role="progressbar" 
-                                                 style="width: {{ $rec['similarity'] }}%" 
-                                                 aria-valuenow="{{ $rec['similarity'] }}" aria-valuemin="0" aria-valuemax="100">
-                                            </div>
-                                        </div>
+                                    <input type="range" class="form-range"
+                                           min="{{ $parameter->min ?? 1 }}"
+                                           max="{{ $parameter->max ?? 15 }}"
+                                           step="1"
+                                           wire:model="inputs.{{ $parameter->kode }}"
+                                           style="accent-color: #C67C4E; cursor: pointer;">
 
-                                        <div class="d-flex flex-wrap gap-3 text-xs text-muted mb-2">
-                                            <span><i class="fi-rs-tag mr-1 text-primary"></i> <b>{{ $rec['jenis_kopi'] }}</b></span>
-                                            <span><i class="fi-rs-home mr-1 text-success"></i> {{ $rec['nama_supplier'] }}</span>
-                                            <span><i class="fi-rs-marker mr-1 text-danger"></i> {{ $rec['alamat'] }}</span>
-                                        </div>
-
-                                        <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
-                                            <small class="text-muted">
-                                                Jarak Euclidean: <code>{{ $rec['distance'] }}</code>
-                                            </small>
-                                            <a href="{{ route('product.details', $rec['id']) }}" class="btn btn-sm btn-outline-dark px-3 rounded-pill font-semibold">
-                                                Lihat Profil Lengkap <i class="fi-rs-arrow-right ml-1"></i>
-                                            </a>
-                                        </div>
+                                    <div class="d-flex justify-content-between" style="font-size: 0.72rem; color: #9E948C;">
+                                        <span>Halus ({{ $parameter->min ?? 1 }})</span>
+                                        <span>Sedang</span>
+                                        <span>Pekat ({{ $parameter->max ?? 15 }})</span>
                                     </div>
                                 </div>
                             </div>
                         @endforeach
                     </div>
-                @endif
-            </div>
+                </div>
+
+                <!-- 3. Catatan Aroma & Profil Spesifik (Chips Sederhana) -->
+                @foreach ($parameters->where('is_multiple', true) as $parameter)
+                    <div class="mb-4">
+                        <label style="font-size: 0.85rem; font-weight: 700; color: #2D2424; margin-bottom: 10px; display: block;">
+                            3. Pilih Nuansa {{ $parameter->name }} yang Anda Sukai (Opsional)
+                        </label>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach ($parameter->subParameters as $sub)
+                                @php
+                                    $isSelected = isset($inputs[$parameter->kode]) && is_array($inputs[$parameter->kode]) && in_array($sub->subparameter_id, $inputs[$parameter->kode]);
+                                @endphp
+                                <button type="button"
+                                        wire:click="toggleSubParam('{{ $parameter->kode }}', {{ $sub->subparameter_id }})"
+                                        class="btn btn-sm"
+                                        style="border-radius: 20px; padding: 6px 16px; font-size: 0.8rem; font-weight: 600; border: 1px solid {{ $isSelected ? '#C67C4E' : '#E8E2DC' }}; background: {{ $isSelected ? '#C67C4E' : '#FFFFFF' }}; color: {{ $isSelected ? '#FFFFFF' : '#69584D' }}; transition: all 0.15s ease;">
+                                    {{ $isSelected ? '✓ ' : '+ ' }}{{ $sub->name }}
+                                </button>
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+
+                <!-- Tombol Submit Elegan -->
+                <div class="text-center mt-5">
+                    <button type="submit" class="btn"
+                            style="background: #2D2424; color: #FFFFFF; font-weight: 700; font-size: 0.95rem; border-radius: 35px; padding: 14px 40px; box-shadow: 0 4px 15px rgba(45,36,36,0.15); border: none;">
+                        <span wire:loading.remove wire:target="calculateRecommendation">
+                            Temukan Rekomendasi Kopi
+                        </span>
+                        <span wire:loading wire:target="calculateRecommendation">
+                            Mencari Rekomendasi...
+                        </span>
+                    </button>
+                </div>
+
+            </form>
         </div>
+
     </div>
 </div>
+
+<!-- Script Auto-Scroll Mulus ke Hasil -->
+<script>
+    window.addEventListener('scroll-to-results', event => {
+        setTimeout(() => {
+            const el = document.getElementById('hasil-rekomendasi');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 100);
+    });
+</script>

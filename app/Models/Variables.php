@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Log;
 
 class Variables extends Model
 {
@@ -42,7 +41,7 @@ class Variables extends Model
                 $model->parameters = json_decode($model->parameters, true);
             }
 
-            // Normalisasi data sebelum menyimpan
+            // Normalisasi data sebelum menyimpan jika belum terisi
             if (empty($model->normalisasi) && !empty($model->parameters)) {
                 $model->normalisasi = self::normalizeData($model->parameters);
             }
