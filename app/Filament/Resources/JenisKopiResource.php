@@ -27,8 +27,6 @@ class JenisKopiResource extends Resource
         return $form
             ->schema([
                 Card::make()
-                    ->title('Data Varietas / Jenis Kopi')
-                    ->description('Master data jenis kopi (Arabika, Robusta, Liberika, Ekselsa, dll).')
                     ->schema([
                         TextInput::make('jenis_kopi')
                             ->required()

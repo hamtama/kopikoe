@@ -30,8 +30,6 @@ class SubParameterResource extends Resource
         return $form
             ->schema([
                 Card::make()
-                    ->title('Data Sub-Parameter')
-                    ->description('Kelola karakteristik turunan untuk parameter multi-kategori.')
                     ->schema([
                         Grid::make(2)
                             ->schema([

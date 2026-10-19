@@ -34,8 +34,6 @@ class ParametersResource extends Resource
         return $form
             ->schema([
                 Card::make()
-                    ->title('Konfigurasi Parameter / Kriteria KNN')
-                    ->description('Tentukan kriteria penilaian sensori dan aturan normalisasi Min-Max.')
                     ->schema([
                         Grid::make(2)
                             ->schema([

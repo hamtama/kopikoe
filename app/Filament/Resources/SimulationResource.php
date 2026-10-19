@@ -57,7 +57,6 @@ class SimulationResource extends Resource
 
         $cards = [
             Card::make()
-                ->title('Informasi Skenario Uji')
                 ->schema([
                     Grid::make(2)
                         ->schema([
@@ -76,7 +75,6 @@ class SimulationResource extends Resource
 
         if (!empty($numericInputs)) {
             $cards[] = Card::make()
-                ->title('Kriteria Numerik')
                 ->schema([
                     Grid::make(3)->schema($numericInputs),
                 ]);
@@ -84,7 +82,6 @@ class SimulationResource extends Resource
 
         if (!empty($multipleInputs)) {
             $cards[] = Card::make()
-                ->title('Karakteristik & Sub-Parameter')
                 ->schema($multipleInputs);
         }
 

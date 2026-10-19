@@ -26,8 +26,6 @@ class UserCategoryResource extends Resource
         return $form
             ->schema([
                 Card::make()
-                    ->title('Data Kategori Pengguna')
-                    ->description('Kelola tipe user (Penggiat Kopi, Pencari Kopi, Pakar, dll).')
                     ->schema([
                         TextInput::make('name_user_category')
                             ->label('Nama Kategori Pengguna')

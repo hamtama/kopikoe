@@ -32,8 +32,6 @@ class UserResource extends Resource
         return $form
             ->schema([
                 Card::make()
-                    ->title('Data Akun Pengguna')
-                    ->description('Kelola akun login admin, penggiat kopi, dan pencari kopi.')
                     ->schema([
                         Grid::make(2)
                             ->schema([
