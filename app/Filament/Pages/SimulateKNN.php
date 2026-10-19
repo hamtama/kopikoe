@@ -129,9 +129,9 @@ class SimulateKNN extends Page implements Forms\Contracts\HasForms
 
         // Simpan log riwayat simulasi ke database
         Simulation::create([
-            'input_data' => json_encode($this->inputData),
-            'normalized_data' => json_encode($this->normalizedData),
-            'recommendations' => json_encode($this->recommendations),
+            'input_data' => $this->inputData,
+            'normalized_data' => $this->normalizedData,
+            'recommendations' => $this->recommendations,
         ]);
     }
 

@@ -24,15 +24,75 @@ class Simulation extends Model
         'recommendations' => 'array',
     ];
 
+    public function getInputDataAttribute($value)
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (is_string($decoded)) {
+                $decoded = json_decode($decoded, true);
+            }
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return [];
+    }
+
+    public function getNormalizedDataAttribute($value)
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (is_string($decoded)) {
+                $decoded = json_decode($decoded, true);
+            }
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return [];
+    }
+
+    public function getRecommendationsAttribute($value)
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            if (is_string($decoded)) {
+                $decoded = json_decode($decoded, true);
+            }
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return [];
+    }
+
     protected static function boot()
     {
         parent::boot();
 
         static::saving(function ($simulation) {
-            if (is_array($simulation->input_data)) {
-                $normalizedData = SimulationResource::normalizeData($simulation->input_data);
+            $input = $simulation->input_data;
+            if (is_string($input)) {
+                $input = json_decode($input, true);
+                if (is_string($input)) {
+                    $input = json_decode($input, true);
+                }
+            }
+
+            if (is_array($input) && !empty($input)) {
+                $normalizedData = SimulationResource::normalizeData($input);
                 $recommendations = SimulationResource::calculateKNN($normalizedData);
 
+                $simulation->input_data = $input;
                 $simulation->normalized_data = $normalizedData;
                 $simulation->recommendations = $recommendations;
             }

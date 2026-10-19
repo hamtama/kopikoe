@@ -40,13 +40,13 @@ class SimulationResource extends Resource
 
             if ($parameter->is_multiple) {
                 $subParameters = $parameter->subParameters->pluck('name', 'subparameter_id')->toArray();
-                $multipleInputs[] = CheckboxList::make("input_data.{$transformedName}")
+                $multipleInputs[] = CheckboxList::make($transformedName)
                     ->label($parameter->name . ' (' . $parameter->kode . ')')
                     ->options($subParameters)
                     ->columns(3)
                     ->columnSpanFull();
             } else {
-                $numericInputs[] = TextInput::make("input_data.{$transformedName}")
+                $numericInputs[] = TextInput::make($transformedName)
                     ->label($parameter->name . ' (' . $parameter->kode . ')')
                     ->helperText("Skala: {$parameter->min} - {$parameter->max}")
                     ->required()
@@ -60,11 +60,11 @@ class SimulationResource extends Resource
                 ->schema([
                     Grid::make(2)
                         ->schema([
-                            TextInput::make('input_data.name')
+                            TextInput::make('name')
                                 ->label('Nama Skenario / Penguji')
                                 ->default(fn () => 'Pengujian ' . date('d/m/Y H:i'))
                                 ->required(),
-                            Select::make('input_data.jenis_kopi')
+                            Select::make('jenis_kopi')
                                 ->label('Target Jenis Kopi')
                                 ->options(JenisKopi::all()->pluck('jenis_kopi', 'id_jenis_kopi'))
                                 ->required()
@@ -165,6 +165,7 @@ class SimulationResource extends Resource
                             'input' => $input,
                         ]);
                     }),
+                Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
