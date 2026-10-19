@@ -139,8 +139,11 @@ return [
         'namespace' => 'App\\Filament\\Widgets',
         'path' => app_path('Filament/Widgets'),
         'register' => [
-            Widgets\AccountWidget::class,
-            \Awcodes\Overlook\Overlook::class,
+            \App\Filament\Widgets\DashboardHero::class,
+            \App\Filament\Widgets\StatsOverview::class,
+            \App\Filament\Widgets\CoffeeVarietyChart::class,
+            \App\Filament\Widgets\SimulationTrendChart::class,
+            \App\Filament\Widgets\LatestSimulationsWidget::class,
         ],
     ],
 
