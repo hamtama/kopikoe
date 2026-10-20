@@ -15,6 +15,11 @@ class StatsOverview extends BaseWidget
 {
     protected static ?int $sort = 2;
 
+    public static function getName(): string
+    {
+        return 'app.filament.widgets.stats-overview';
+    }
+
     protected function getCards(): array
     {
         $totalKopi = Variables::count();

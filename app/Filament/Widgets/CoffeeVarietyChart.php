@@ -18,6 +18,11 @@ class CoffeeVarietyChart extends DoughnutChartWidget
 
     protected static ?string $maxHeight = '280px';
 
+    public static function getName(): string
+    {
+        return 'app.filament.widgets.coffee-variety-chart';
+    }
+
     protected function getData(): array
     {
         $varieties = JenisKopi::withCount('variables')->get();

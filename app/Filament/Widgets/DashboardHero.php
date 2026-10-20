@@ -7,6 +7,7 @@ use App\Models\Variables;
 use App\Models\Simulation;
 use App\Models\Parameters;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Contracts\View\View;
 
 class DashboardHero extends Widget
 {
@@ -16,7 +17,12 @@ class DashboardHero extends Widget
 
     protected int | string | array $columnSpan = 'full';
 
-    public function getViewData(): array
+    public static function getName(): string
+    {
+        return 'app.filament.widgets.dashboard-hero';
+    }
+
+    public function render(): View
     {
         $user = Auth::user();
         $hour = (int) date('H');
@@ -39,7 +45,7 @@ class DashboardHero extends Widget
         $readyKopi = Variables::where('status', 1)->count();
         $percentReady = $totalKopi > 0 ? round(($readyKopi / $totalKopi) * 100) : 0;
 
-        return [
+        return view(static::$view, [
             'greeting' => $greeting,
             'greetingIcon' => $icon,
             'userName' => $user->name ?? 'Administrator',
@@ -49,6 +55,6 @@ class DashboardHero extends Widget
             'percentReady' => $percentReady,
             'totalSimulasi' => Simulation::count(),
             'totalKriteria' => Parameters::count(),
-        ];
+        ]);
     }
 }

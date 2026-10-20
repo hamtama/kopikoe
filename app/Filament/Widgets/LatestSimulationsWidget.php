@@ -16,9 +16,24 @@ class LatestSimulationsWidget extends BaseWidget
 
     protected static ?string $heading = 'Aktivitas Pengujian & Rekomendasi Terkini';
 
+    public static function getName(): string
+    {
+        return 'app.filament.widgets.latest-simulations-widget';
+    }
+
     protected function getTableQuery(): Builder
     {
-        return Simulation::query()->latest()->limit(5);
+        return Simulation::query()->latest();
+    }
+
+    protected function getTableRecordsPerPage(): int
+    {
+        return 5;
+    }
+
+    protected function isTablePaginationEnabled(): bool
+    {
+        return false;
     }
 
     protected function getTableColumns(): array

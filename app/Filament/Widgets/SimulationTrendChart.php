@@ -19,6 +19,11 @@ class SimulationTrendChart extends LineChartWidget
 
     protected static ?string $maxHeight = '280px';
 
+    public static function getName(): string
+    {
+        return 'app.filament.widgets.simulation-trend-chart';
+    }
+
     protected function getData(): array
     {
         $labels = [];

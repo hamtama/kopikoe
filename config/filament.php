@@ -138,13 +138,7 @@ return [
     'widgets' => [
         'namespace' => 'App\\Filament\\Widgets',
         'path' => app_path('Filament/Widgets'),
-        'register' => [
-            \App\Filament\Widgets\DashboardHero::class,
-            \App\Filament\Widgets\StatsOverview::class,
-            \App\Filament\Widgets\CoffeeVarietyChart::class,
-            \App\Filament\Widgets\SimulationTrendChart::class,
-            \App\Filament\Widgets\LatestSimulationsWidget::class,
-        ],
+        'register' => [],
     ],
 
     /*
