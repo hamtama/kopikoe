@@ -205,7 +205,10 @@ class VariableResource extends Resource
                         ?? $params[str_replace(' ', '_', strtolower(trim($parameter->name)))]
                         ?? null;
 
-                    if (is_array($val) && !empty($val)) {
+                    if (is_array($val)) {
+                        if (empty($val)) {
+                            return $baseTooltip . ': -';
+                        }
                         static $subParamMap = null;
                         if ($subParamMap === null) {
                             $subParamMap = SubParameter::pluck('name', 'subparameter_id')->toArray();
@@ -214,7 +217,10 @@ class VariableResource extends Resource
                         if (!empty($names)) {
                             return $parameter->name . ': ' . implode(', ', $names);
                         }
-                    } elseif ($val !== null && $val !== '') {
+                        return $parameter->name . ': ' . implode(', ', $val);
+                    }
+
+                    if ($val !== null && $val !== '' && is_scalar($val)) {
                         return $parameter->name . ': ' . $val;
                     }
 
