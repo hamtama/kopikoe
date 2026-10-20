@@ -11,6 +11,11 @@ use App\Filament\Widgets\LatestSimulationsWidget;
 
 class Dashboard extends BasePage
 {
+    protected static ?string $navigationIcon = 'heroicon-o-home';
+    protected static ?string $navigationLabel = 'Dashboard';
+    protected static ?string $title = 'Dashboard';
+    protected static ?int $navigationSort = -2;
+
     protected function getWidgets(): array
     {
         return [

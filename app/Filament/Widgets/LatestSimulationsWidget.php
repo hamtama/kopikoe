@@ -23,7 +23,12 @@ class LatestSimulationsWidget extends BaseWidget
 
     protected function getTableQuery(): Builder
     {
-        return Simulation::query()->latest();
+        return Simulation::query()->latest('id');
+    }
+
+    protected function isTablePaginationEnabled(): bool
+    {
+        return true;
     }
 
     protected function getTableRecordsPerPage(): int
@@ -31,15 +36,25 @@ class LatestSimulationsWidget extends BaseWidget
         return 5;
     }
 
-    protected function isTablePaginationEnabled(): bool
+    protected function getTableRecordsPerPageSelectOptions(): array
     {
-        return false;
+        return [5, 10, 25];
+    }
+
+    protected function getDefaultTableSortColumn(): ?string
+    {
+        return 'id';
+    }
+
+    protected function getDefaultTableSortDirection(): ?string
+    {
+        return 'desc';
     }
 
     protected function getTableColumns(): array
     {
         return [
-            Tables\Columns\TextColumn::make('id')->label('#'),
+            Tables\Columns\TextColumn::make('id')->label('#')->sortable(),
 
             Tables\Columns\TextColumn::make('input_data.name')
                 ->label('Skenario / Penguji')
@@ -77,7 +92,8 @@ class LatestSimulationsWidget extends BaseWidget
                     $distance = $recs[0]['distance'] ?? null;
                     if ($distance === null) return '-';
                     $sim = max(0, min(100, round((1 / (1 + (float)$distance)) * 100, 1)));
-                    return "{$sim}% (d: {$distance})";
+                    $formattedDist = round((float)$distance, 3);
+                    return "{$sim}% (d: {$formattedDist})";
                 })
                 ->colors([
                     'success' => fn ($state): bool => str_contains($state, '%') && (float)$state >= 80,

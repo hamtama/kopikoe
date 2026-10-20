@@ -1,67 +1,66 @@
-<div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-stone-900 via-neutral-900 to-amber-950 text-white shadow-xl border border-stone-800 p-6 md:p-8">
-    <!-- Background Coffee Ambient Circles -->
-    <div class="absolute -right-12 -top-12 w-64 h-64 bg-amber-600/10 rounded-full blur-3xl pointer-events-none"></div>
-    <div class="absolute right-1/3 -bottom-12 w-48 h-48 bg-orange-500/10 rounded-full blur-2xl pointer-events-none"></div>
-
-    <div class="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-        <!-- Left: Welcome & System Status -->
-        <div class="space-y-3 max-w-2xl">
-            <div class="flex flex-wrap items-center gap-2">
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-                    SPK Pemilihan Kopi • KNN Engine Aktif
-                </span>
-                <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-stone-800 text-stone-300">
-                    {{ $userRole }}
-                </span>
-            </div>
-
-            <h1 class="text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-2">
-                <span>{{ $greetingIcon }}</span>
-                <span>{{ $greeting }}, <span class="text-amber-400">{{ $userName }}</span></span>
-            </h1>
-
-            <p class="text-stone-300 text-sm md:text-base leading-relaxed">
-                Selamat datang di panel kendali cerdas <strong class="text-white">Kopikoe</strong>. Pantau dataset sampel kopi, kelola kriteria sensori cupping, dan lakukan pengujian rekomendasi kopi berbasis algoritma K-Nearest Neighbors secara real-time.
-            </p>
-
-            <!-- Kesiapan Normalisasi Dataset Bar -->
-            <div class="pt-2">
-                <div class="flex justify-between items-center text-xs mb-1.5">
-                    <span class="text-stone-300 font-medium">Kesiapan Dataset Rekomendasi:</span>
-                    <span class="font-bold text-amber-300">{{ $readyKopi }} dari {{ $totalKopi }} Kopi Siap ({{ $percentReady }}%)</span>
-                </div>
-                <div class="w-full bg-stone-800/80 rounded-full h-2.5 overflow-hidden border border-stone-700/60">
-                    <div class="bg-gradient-to-r from-amber-500 to-emerald-400 h-2.5 rounded-full transition-all duration-500" style="width: {{ $percentReady }}%"></div>
-                </div>
-            </div>
+<div style="grid-column: 1 / -1; width: 100%; background: linear-gradient(135deg, #1C1917 0%, #29231E 50%, #3D2619 100%); border: 1px solid #4A3B32; border-radius: 16px; padding: 22px 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.12); box-sizing: border-box;">
+    
+    <!-- Row 1: Badges & Status -->
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px;">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+            <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; background: rgba(217, 119, 6, 0.25); color: #FDE68A; border: 1px solid rgba(217, 119, 6, 0.45); letter-spacing: 0.5px;">
+                <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #F59E0B;"></span>
+                SPK Pemilihan Kopi • KNN Engine Aktif
+            </span>
+            <span style="display: inline-block; padding: 4px 10px; border-radius: 9999px; font-size: 0.72rem; font-weight: 600; background: rgba(255, 255, 255, 0.12); color: #E5E7EB;">
+                {{ $userRole }}
+            </span>
         </div>
 
-        <!-- Right: Interactive Quick Actions -->
-        <div class="flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0">
+        <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; font-size: 0.75rem; font-weight: 700; background: rgba(16, 185, 129, 0.2); color: #6EE7B7; border: 1px solid rgba(16, 185, 129, 0.35);">
+            <span>✓ {{ $readyKopi }} dari {{ $totalKopi }} Kopi Siap ({{ $percentReady }}% Normalisasi)</span>
+        </div>
+    </div>
+
+    <!-- Row 2: Greeting & Quick Action Buttons -->
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px;">
+        <!-- Left: Text Greeting -->
+        <div style="max-width: 600px;">
+            <h2 style="font-size: 1.45rem; font-weight: 800; color: #FFFFFF; margin: 0 0 6px 0; display: flex; align-items: center; gap: 8px; line-height: 1.2;">
+                <span>{{ $greetingIcon }}</span>
+                <span>{{ $greeting }}, <span style="color: #F59E0B;">{{ $userName }}</span></span>
+            </h2>
+            <p style="font-size: 0.86rem; color: #D6CCC2; margin: 0; line-height: 1.4;">
+                Kelola dataset sampel kopi, pantau kriteria sensori cupping, dan jalankan simulasi rekomendasi K-Nearest Neighbors secara terpadu.
+            </p>
+        </div>
+
+        <!-- Right: Action Buttons -->
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
             <a href="{{ route('filament.resources.variables.create') }}" 
-               class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold bg-amber-500 text-stone-950 hover:bg-amber-400 transition shadow-lg shadow-amber-500/20">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; background: #C67C4E; color: #FFFFFF; text-decoration: none; box-shadow: 0 2px 10px rgba(198, 124, 78, 0.35); transition: all 0.2s;">
+                <svg style="width: 15px; height: 15px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
                 </svg>
-                + Tambah Sampel Kopi
+                + Tambah Kopi
             </a>
 
             <a href="{{ route('filament.pages.simulation-knn') }}" 
-               class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-stone-800/90 text-white hover:bg-stone-700 border border-stone-700 transition">
-                <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 10px; font-size: 0.82rem; font-weight: 600; background: rgba(255, 255, 255, 0.1); color: #FFFFFF; border: 1px solid rgba(255, 255, 255, 0.2); text-decoration: none; transition: all 0.2s;">
+                <svg style="width: 15px; height: 15px; color: #F59E0B;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                 </svg>
-                Jalankan Simulasi KNN
+                Simulasi KNN
             </a>
 
             <a href="{{ route('filament.resources.normalizations.index') }}" 
-               class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-stone-800/90 text-white hover:bg-stone-700 border border-stone-700 transition">
-                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               style="display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 10px; font-size: 0.82rem; font-weight: 600; background: rgba(255, 255, 255, 0.1); color: #FFFFFF; border: 1px solid rgba(255, 255, 255, 0.2); text-decoration: none; transition: all 0.2s;">
+                <svg style="width: 15px; height: 15px; color: #34D399;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                 </svg>
-                Matriks Normalisasi
+                Matriks
             </a>
         </div>
     </div>
+
+    <!-- Row 3: Slim Progress Bar -->
+    <div style="margin-top: 16px; width: 100%; background: rgba(255, 255, 255, 0.1); border-radius: 9999px; height: 5px; overflow: hidden;">
+        <div style="height: 5px; border-radius: 9999px; background: linear-gradient(90deg, #F59E0B, #10B981); width: {{ $percentReady }}%;"></div>
+    </div>
+
 </div>
