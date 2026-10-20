@@ -72,7 +72,11 @@ class Variables extends Model
 
         foreach ($allParams as $parameter) {
             $key = $parameter->kode;
-            $value = $parameters[$key] ?? null;
+            $value = $parameters[$key]
+                ?? $parameters[strtolower($key)]
+                ?? $parameters[$parameter->parameter_id]
+                ?? $parameters[str_replace(' ', '_', strtolower(trim($parameter->name)))]
+                ?? null;
 
             if ($parameter->is_multiple) {
                 $subParameters = $parameter->subParameters->pluck('subparameter_id')->toArray();

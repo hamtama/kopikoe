@@ -123,7 +123,8 @@ class VariableResource extends Resource
                 })
                 ->disk('public')
                 ->size(45)
-                ->circular(),
+                ->circular()
+                ->toggleable(isToggledHiddenByDefault: true),
 
             Tables\Columns\TextColumn::make('name')
                 ->label('Nama Kopi')
@@ -142,27 +143,83 @@ class VariableResource extends Resource
         foreach ($parameters as $parameter) {
             $transformedName = $parameter->kode;
 
-            $columns[] = Tables\Columns\TextColumn::make("parameters->{$transformedName}")
+            $columns[] = Tables\Columns\BadgeColumn::make("param_{$transformedName}")
                 ->label($parameter->kode)
-                ->tooltip($parameter->name . ' (' . ucfirst($parameter->type) . ')')
-                ->formatStateUsing(function ($state, $record) use ($transformedName) {
+                ->getStateUsing(function ($record) use ($transformedName, $parameter) {
                     if (!$record->parameters) {
                         return '-';
                     }
 
-                    $params = is_array($record->parameters) ? $record->parameters : json_decode($record->parameters, true);
+                    $params = is_array($record->parameters)
+                        ? $record->parameters
+                        : (json_decode($record->parameters ?? '[]', true) ?: []);
 
-                    if (is_array($params) && isset($params[$transformedName])) {
-                        $value = $params[$transformedName];
-                        if (is_array($value)) {
-                            $subParams = SubParameter::whereIn('subparameter_id', $value)->pluck('name')->toArray();
-                            return !empty($subParams) ? implode(', ', $subParams) : '-';
-                        }
-                        return $value;
+                    if (!is_array($params)) {
+                        return '-';
                     }
-                    return '-';
+
+                    $val = $params[$transformedName]
+                        ?? $params[strtolower($transformedName)]
+                        ?? $params[$parameter->parameter_id]
+                        ?? $params[str_replace(' ', '_', strtolower(trim($parameter->name)))]
+                        ?? null;
+
+                    if ($val === null || $val === '') {
+                        return '-';
+                    }
+
+                    if (is_array($val)) {
+                        if (empty($val)) {
+                            return '-';
+                        }
+                        static $subParamMap = null;
+                        if ($subParamMap === null) {
+                            $subParamMap = SubParameter::pluck('name', 'subparameter_id')->toArray();
+                        }
+                        $names = array_filter(array_map(fn($id) => $subParamMap[$id] ?? null, $val));
+                        if (empty($names)) {
+                            return count($val) . ' item';
+                        }
+                        return count($names) === 1 ? reset($names) : count($names) . ' pilihan';
+                    }
+
+                    return is_numeric($val) ? (string) (0 + $val) : (string) $val;
                 })
-                ->limit(25)
+                ->colors([
+                    'secondary' => fn ($state): bool => $state === '-' || $state === null || $state === '',
+                    'primary' => fn ($state): bool => $state !== '-' && $state !== null && $state !== '',
+                ])
+                ->tooltip(function ($record) use ($transformedName, $parameter) {
+                    $baseTooltip = $parameter->name . ' (' . ucfirst($parameter->type ?? 'kriteria') . ')';
+                    if (!$record || !$record->parameters) {
+                        return $baseTooltip;
+                    }
+
+                    $params = is_array($record->parameters)
+                        ? $record->parameters
+                        : (json_decode($record->parameters ?? '[]', true) ?: []);
+
+                    $val = $params[$transformedName]
+                        ?? $params[strtolower($transformedName)]
+                        ?? $params[$parameter->parameter_id]
+                        ?? $params[str_replace(' ', '_', strtolower(trim($parameter->name)))]
+                        ?? null;
+
+                    if (is_array($val) && !empty($val)) {
+                        static $subParamMap = null;
+                        if ($subParamMap === null) {
+                            $subParamMap = SubParameter::pluck('name', 'subparameter_id')->toArray();
+                        }
+                        $names = array_filter(array_map(fn($id) => $subParamMap[$id] ?? null, $val));
+                        if (!empty($names)) {
+                            return $parameter->name . ': ' . implode(', ', $names);
+                        }
+                    } elseif ($val !== null && $val !== '') {
+                        return $parameter->name . ': ' . $val;
+                    }
+
+                    return $baseTooltip;
+                })
                 ->alignCenter();
         }
 
